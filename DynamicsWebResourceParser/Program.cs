@@ -94,6 +94,11 @@ namespace DynamicsWebResourceParser
         /// <param name="solutionName"></param>
         static void CollectAndZipWebResourceFiles(List<WebResource> webResources, ZipArchive archive, string solutionName)
         {
+            //Delete directory if it already exists
+            if (Directory.Exists(solutionName))
+            {
+                Directory.Delete(solutionName,true);
+            }
             //CreateDirectory that will be zipped
             System.IO.Directory.CreateDirectory(solutionName);
 
@@ -120,7 +125,6 @@ namespace DynamicsWebResourceParser
                     }
                 }
                 ZipWebResources(solutionName);
-                Console.WriteLine(string.Format("Zip file {0}.zip successfully created.", solutionName));
             }
             catch (IOException ioe) //thrown when the zip file already exists
             {
@@ -134,14 +138,40 @@ namespace DynamicsWebResourceParser
             catch (IOException ioe) //sometimes Directory delete throws an exception if it isn't empty despite giving it the true parameter.
             {
                 Console.WriteLine("Error when deleting temp directory. Sleeping a half second and then will try again.");
-                Thread.Sleep(500); //HACK: This prevents intermittent issue deletion exception
+                Thread.Sleep(500); //HACK: This prevents intermittent deletion exception issue
                 System.IO.Directory.Delete(solutionName, true);
             }
         }
 
         static void ZipWebResources(string directoryName)
         {
-            ZipFile.CreateFromDirectory(directoryName, directoryName + "_WebResources.zip");
+            string targetZipFileName = directoryName + "_WebResources.zip";
+            bool zipFileCreated = false;
+            if (File.Exists(targetZipFileName))
+            {
+                Console.WriteLine(String.Format("Web resource archive {0} has already been generated, would you like to overwrite? (type y to proceed, anything else to cancel)", targetZipFileName));
+                if (Console.ReadKey().KeyChar.ToString().ToLower() == "y")
+                {
+                    File.Delete(targetZipFileName);
+                    ZipFile.CreateFromDirectory(directoryName, targetZipFileName);
+                    zipFileCreated = true;
+                }
+                else
+                {
+                    Console.WriteLine("You have chosen not to create a new web resource archive.");
+                }
+                Console.WriteLine();
+            }
+            else
+            {
+                ZipFile.CreateFromDirectory(directoryName, targetZipFileName);
+                zipFileCreated = true;
+            }
+
+            if (zipFileCreated)
+            {
+                Console.WriteLine(String.Format("Web Resources archive {0} has been created.", targetZipFileName));
+            }
         }
 
         static string GetFileEnding(int webResourceType)
